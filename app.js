@@ -382,7 +382,7 @@ async function loadByRef() {
   const tok = $('#gh-token').value.trim();
   if (tok) { localStorage.setItem('gh_token', tok); ghTokenApproved = true; $('#gh-saved').hidden = true; }
   const ref = parseRepoRef($('#gh-direct').value);
-  if (!ref) { showError('格式应为 owner/repo，例如 lichenyu27/try'); return; }
+  if (!ref) { showError('格式应为 owner/repo，例如 owner/repo'); return; }
   const btn = $('#gh-direct-btn');
   btn.disabled = true; btn.textContent = '读取中…';
   const full = `${ref.owner}/${ref.repo}`;
@@ -806,7 +806,7 @@ async function grConnect(force) {
   const token = $('#gr-token').value.trim();
   if (!repoStr) { showError('请填写全局仓库 owner/repo'); return; }
   const parts = repoStr.split('/').filter(Boolean);
-  if (parts.length < 2) { showError('格式应为 owner/repo，例如 lichenyu27/try'); return; }
+  if (parts.length < 2) { showError('格式应为 owner/repo，例如 owner/repo'); return; }
   globalRepo = { repo: parts.slice(0, 2).join('/'), branch: branch || 'main', token };
   saveGlobalRepo();
   if (token) { localStorage.setItem('gh_token', token); ghTokenApproved = true; }
@@ -1277,7 +1277,7 @@ async function assetConnect() {
   const tok = $('#asset-token').value.trim();
   if (tok) { localStorage.setItem('gh_token', tok); ghTokenApproved = true; }
   const parts = repoStr.split('/').filter(Boolean);
-  if (parts.length < 2) { assetError('请填写 owner/repo，例如 lichenyu27/try'); return; }
+  if (parts.length < 2) { assetError('请填写 owner/repo，例如 owner/repo'); return; }
   asset.owner = parts[0]; asset.repo = parts.slice(0, 2).join('/');
   $('#asset-error').hidden = true;
   const btn = $('#asset-connect'); btn.disabled = true; btn.textContent = '连接中…';
