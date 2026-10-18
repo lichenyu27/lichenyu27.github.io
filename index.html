@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>答题小站 · 选择题 / 判断题</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-left">
+      <h1>📝 答题小站</h1>
+      <p class="subtitle">选择题 · 多选题 · 判断题 · JSON 题库 · GitHub 导入</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn ghost small" id="open-ext-btn">🧩 扩展商店</button>
+      <button class="btn ghost small" id="display-btn">🖥 展示模式</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- ========== 导入区 ========== -->
+    <section id="import-section" class="card">
+      <h2>导入题库</h2>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="github" role="tab">GitHub 导入</button>
+        <button class="tab" data-tab="file" role="tab">本地文件</button>
+        <button class="tab" data-tab="paste" role="tab">粘贴 JSON</button>
+      </div>
+
+      <!-- GitHub -->
+      <div class="tab-panel active" data-panel="github">
+        <!-- 已保存令牌：默认不用，先询问 -->
+        <div id="gh-saved" class="saved-token" hidden>
+          <span class="saved-text">🔑 检测到本机已保存 GitHub 令牌，是否使用它？（仅用于访问私有库或提升额度，公开库无需令牌）</span>
+          <div class="saved-actions">
+            <button class="btn primary small" id="gh-use-token">使用该令牌</button>
+            <button class="btn ghost small" id="gh-del-token">删除令牌</button>
+          </div>
+        </div>
+        <!-- 直接用名字访问（免令牌，公开库） -->
+        <div id="gh-connect">
+          <!-- 主流程：按 owner 名字浏览（不预先指定仓库；含私有库需令牌） -->
+          <div id="gh-primary">
+            <p class="hint">按 <b>GitHub 用户名 / 组织名</b>（owner）访问：列出该账号下的仓库，进入目录后选择题库 JSON 即可答题。<b>填令牌可包含私有仓库</b>，公开仓库不填令牌也能浏览。</p>
+            <div class="field">
+              <label>GitHub 用户名 / 组织名（owner）</label>
+              <input type="text" id="gh-owner" placeholder="例如：octocat 或 microsoft" />
+            </div>
+            <div class="field">
+              <label>GitHub 令牌 <span class="muted">(可选；填了可访问私有仓库并提升额度，仅存本机浏览器)</span></label>
+              <input type="password" id="gh-token" placeholder="ghp_xxx / github_pat_xxx" autocomplete="off" />
+            </div>
+            <button class="btn primary" id="gh-connect-btn">浏览该账号的仓库</button>
+          </div>
+
+          <details class="adv">
+            <summary>或直接填 owner/repo 快速读取（公开库免令牌 · 支持分享链接）</summary>
+            <p class="hint muted">也支持分享链接 <code>?repo=owner/repo</code> 直接打开并加载题库。</p>
+            <div class="direct-box">
+              <input type="text" id="gh-direct" placeholder="例如：lichenyu27/try 或 lichenyu27/try/quiz.json" />
+              <button class="btn ghost" id="gh-direct-btn">直接读取</button>
+            </div>
+          </details>
+
+          <!-- 多个 JSON 时的选择面板 -->
+          <div id="gh-pick" hidden>
+            <p class="hint" id="gh-pick-hint"></p>
+            <div class="file-tree" id="gh-pick-list"></div>
+            <div class="pick-actions">
+              <button class="btn success" id="gh-merge-btn">合并全部并答题</button>
+              <button class="btn ghost" id="gh-browse-all">浏览全部文件</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 已连接：浏览 -->
+        <div id="gh-browse" hidden>
+          <div class="connected-bar">
+            <span id="gh-login"></span>
+            <button class="btn ghost small" id="gh-logout">断开</button>
+          </div>
+          <div class="row">
+            <div class="field grow">
+              <label>仓库</label>
+              <select id="gh-repo"></select>
+            </div>
+            <div class="field">
+              <label>分支</label>
+              <select id="gh-branch"></select>
+            </div>
+          </div>
+          <div class="field">
+            <label>选择题库文件 <span class="muted">(点文件夹进入，点文件选中)</span></label>
+            <div class="breadcrumb" id="gh-path"></div>
+            <div class="file-tree" id="gh-tree"></div>
+          </div>
+          <button class="btn primary" id="gh-load">读取选中的题库</button>
+        </div>
+
+        <button class="btn ghost" id="gh-sample">载入示例题库</button>
+      </div>
+
+      <!-- 本地文件 -->
+      <div class="tab-panel" data-panel="file">
+        <p class="hint">选择一个 .json 题库文件上传。</p>
+        <div class="field">
+          <label>JSON 文件</label>
+          <input type="file" id="file-input" accept=".json,application/json" />
+        </div>
+        <button class="btn primary" id="file-load">上传并加载</button>
+        <button class="btn ghost" id="file-sample">载入示例题库</button>
+      </div>
+
+      <!-- 粘贴 -->
+      <div class="tab-panel" data-panel="paste">
+        <p class="hint">把题库 JSON 直接粘贴到下方文本框。</p>
+        <div class="field">
+          <label>JSON 内容</label>
+          <textarea id="paste-input" rows="10" placeholder='{"title":"我的题库","questions":[...]}'></textarea>
+        </div>
+        <button class="btn primary" id="paste-load">解析并加载</button>
+      </div>
+
+      <div id="import-error" class="alert error" hidden></div>
+    </section>
+
+    <!-- ========== 全局仓库 ========== -->
+    <section id="global-repo-section" class="card">
+      <h2>🌐 全局仓库（一次设置，全站复用）</h2>
+      <p class="hint">设置后，扩展商店和题库导入都默认用它，无需每次重输仓库；文件列表仅拉取一次并缓存，同仓库不再重复请求（缓解 GitHub 每小时 60 次未认证限流）。</p>
+      <div class="row">
+        <div class="field grow">
+          <label>仓库 owner/repo</label>
+          <input type="text" id="gr-repo" placeholder="例如 lichenyu27/try" />
+        </div>
+        <div class="field">
+          <label>分支</label>
+          <input type="text" id="gr-branch" placeholder="main" />
+        </div>
+      </div>
+      <div class="field">
+        <label>GitHub 令牌 <span class="muted">（可选；填了可访问私有库并提升额度）</span></label>
+        <input type="password" id="gr-token" placeholder="github_pat_xxx（可选，仅存本机）" autocomplete="off" />
+      </div>
+      <div class="pick-actions">
+        <button class="btn primary" id="gr-connect">连接并列出全部文件</button>
+        <button class="btn ghost" id="gr-import">📂 用全局仓库导入题库</button>
+        <button class="btn ghost" id="gr-refresh" hidden>🔄 刷新文件列表</button>
+      </div>
+      <p class="hint" id="gr-status"></p>
+    </section>
+
+    <!-- ========== 扩展商店（浮层 / 新界面） ========== -->
+    <div id="ext-overlay" class="ext-overlay" hidden>
+      <div class="ext-overlay-mask" data-ext-close></div>
+      <div class="ext-overlay-box">
+        <div class="ext-overlay-head">
+          <h2>🧩 扩展商店</h2>
+          <button class="btn ghost small" data-ext-close>✕ 关闭</button>
+        </div>
+        <p class="hint">按需开启扩展：资源均来自你的 GitHub 仓库（免服务器），配置自动保存在本机浏览器。开启后开始答题即可生效。</p>
+
+      <!-- 1. 背景与主题色 -->
+      <div class="ext-card" data-ext="bg">
+        <div class="ext-head">
+          <label class="switch"><input type="checkbox" data-ext-toggle="bg"><span class="slider"></span></label>
+          <span class="ext-title">🎨 更多背景与主题色</span>
+        </div>
+        <p class="ext-desc">从仓库上传背景图，或选择文件夹每 30 秒轮换一张；也可自定义主题色。</p>
+        <div class="ext-body" hidden>
+          <div class="field">
+            <label>背景模式</label>
+            <select data-ext-field="bg-mode">
+              <option value="image">单张图片</option>
+              <option value="folder">文件夹轮换（30 秒/张）</option>
+              <option value="color">纯色主题</option>
+              <option value="website">网站（填入网址作为背景）</option>
+            </select>
+          </div>
+          <div class="ext-block" data-ext-block="bg-source" hidden>
+            <div class="row">
+              <button class="btn ghost small" data-ext-pick="bg">从仓库选择…</button>
+              <span class="ext-src" data-ext-src="bg">未选择</span>
+            </div>
+          </div>
+          <div class="ext-block" data-ext-block="bg-color" hidden>
+            <div class="field">
+              <label>主题色（米黄为默认）</label>
+              <input type="color" data-ext-field="bg-color" value="#c2a04c" />
+            </div>
+          </div>
+          <div class="ext-block" data-ext-block="bg-website" hidden>
+            <div class="field">
+              <label>背景网站网址（全屏嵌入作为背景，纯展示，不挡操作）</label>
+              <div class="row">
+                <input type="url" data-ext-field="bg-website" placeholder="https://example.com" />
+                <button class="btn ghost small" data-ext-apply="bg-website">应用</button>
+              </div>
+              <p class="hint muted">提示：部分网站禁止被嵌入（X-Frame-Options / CSP），此时背景不会显示，可换用允许嵌入的页面。</p>
+            </div>
+            <div class="field">
+              <label>或：从仓库 JSON 上传网址</label>
+              <div class="row">
+                <button class="btn ghost small" data-ext-pick="bg-website">📄 从仓库选择 JSON…</button>
+                <span class="ext-src" data-ext-src="bg-website">未选择</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>或：选择本地 JSON 文件（含 url / website / link 字段）</label>
+              <input type="file" id="bg-website-file" accept=".json,application/json" />
+            </div>
+            <details class="fmt-mini">
+              <summary>网址 JSON 格式</summary>
+              <pre class="code"><code>{
+  "url": "https://example.com"   // 也可用 website / link 字段
+}</code></pre>
+              <p class="hint muted">最简写法：文件内容直接是网址字符串 <code>"https://example.com"</code></p>
+            </details>
+            <label class="ext-check">
+              <input type="checkbox" data-ext-field="bg-interactive" />
+              <span>允许在背景网页中交互（可点击、滚动背景网站）</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. 背景音乐 -->
+      <div class="ext-card" data-ext="music">
+        <div class="ext-head">
+          <label class="switch"><input type="checkbox" data-ext-toggle="music"><span class="slider"></span></label>
+          <span class="ext-title">🎵 背景音乐附加</span>
+        </div>
+        <p class="ext-desc">从仓库上传音乐文件；选文件夹则按顺序播放，一首放完自动切下一首。</p>
+        <div class="ext-body" hidden>
+          <div class="field">
+            <label>播放模式</label>
+            <select data-ext-field="music-mode">
+              <option value="single">单首循环</option>
+              <option value="folder">文件夹顺序播放</option>
+            </select>
+          </div>
+          <div class="row">
+            <button class="btn ghost small" data-ext-pick="music">从仓库选择…</button>
+            <span class="ext-src" data-ext-src="music">未选择</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. LCD 附加 -->
+      <div class="ext-card" data-ext="lcd">
+        <div class="ext-head">
+          <label class="switch"><input type="checkbox" data-ext-toggle="lcd"><span class="slider"></span></label>
+          <span class="ext-title">📟 LCD 附加</span>
+        </div>
+        <p class="ext-desc">在答题界面上方加一块 LCD 像素屏，从仓库上传 JSON 控制滚动内容，滚动速度偏快。</p>
+        <div class="ext-body" hidden>
+          <div class="row">
+            <button class="btn ghost small" data-ext-pick="lcd">从仓库选择 JSON…</button>
+            <span class="ext-src" data-ext-src="lcd">未选择</span>
+          </div>
+          <div class="field">
+            <label>滚动速度（越小越快）</label>
+            <input type="range" min="4" max="20" step="1" data-ext-field="lcd-speed" value="7" />
+            <span class="muted" data-ext-val="lcd-speed">7 秒/轮</span>
+          </div>
+          <div class="field">
+            <label>屏幕不透明度（10% 透明 ~ 100% 不透明）</label>
+            <input type="range" min="10" max="100" step="5" data-ext-field="lcd-opacity" value="90" />
+            <span class="muted" data-ext-val="lcd-opacity">90%</span>
+          </div>
+          <details class="fmt-mini">
+            <summary>LCD 文本 JSON 格式</summary>
+            <pre class="code"><code>{
+  "content": "欢迎使用答题小站 ★ 内部滚动通知",
+  "lines": ["第一条通知", "第二条通知"]   // 可选；与 content 二选一
+}
+
+// 也支持更简写法：
+"纯文本一行"
+[ "行一", "行二", "行三" ]</code></pre>
+            <ul class="fmt-list">
+              <li><b>content</b>：字符串，整体滚动</li>
+              <li><b>lines</b>：字符串数组，逐条<b>分开</b>滚动（一行滚完再滚下一行，循环）</li>
+              <li>最简形式：直接用字符串，或字符串数组</li>
+            </ul>
+          </details>
+        </div>
+      </div>
+
+      <!-- 4. 抽取学号 -->
+      <div class="ext-card" data-ext="rollcall">
+        <div class="ext-head">
+          <label class="switch"><input type="checkbox" data-ext-toggle="rollcall"><span class="slider"></span></label>
+          <span class="ext-title">🎲 抽取学号</span>
+        </div>
+        <p class="ext-desc">从仓库上传学号 JSON，随机抽取一个学号，<b>抽过的自动排除</b>（不重复）。可在答题时「下一题前自动抽」，也可手动抽取；配合「🖥 展示模式」投屏使用。</p>
+        <div class="ext-body" hidden>
+          <div class="row">
+            <button class="btn ghost small" data-ext-pick="rollcall">从仓库选择学号 JSON…</button>
+            <span class="ext-src" data-ext-src="rollcall">未选择</span>
+          </div>
+          <div class="field">
+            <label>排除名单（逗号分隔，按学号）</label>
+            <input type="text" data-ext-field="rollcall-exclude" placeholder="例如：2021003, 2021020" />
+          </div>
+          <div class="rollcall-actions">
+            <button class="btn primary small" id="rc-draw-btn">🎲 抽一个学号</button>
+            <span class="muted" id="rc-drawn-count"></span>
+          </div>
+          <div class="drawn-list" id="rc-drawn-list"></div>
+          <details class="fmt-mini">
+            <summary>学号 JSON 格式</summary>
+            <pre class="code"><code>{
+  "ids": ["2021001","2021002","2021003", ...]   // 学号列表（推荐）
+}
+
+// 也支持更简写法：
+["2021001","2021002", ...]          // 直接字符串数组
+{ "names": ["张三","李四", ...] }    // 视为学号标签
+{ "rows": [...], "names": [...] }    // 兼容旧座位图写法</code></pre>
+          </details>
+        </div>
+      </div>
+
+      <!-- 5. 自动化答题 -->
+      <div class="ext-card" data-ext="autoanswer">
+        <div class="ext-head">
+          <label class="switch"><input type="checkbox" data-ext-toggle="autoanswer"><span class="slider"></span></label>
+          <span class="ext-title">🤖 自动化答题</span>
+        </div>
+        <p class="ext-desc">题目显示后延迟自动选正确答案，再延迟自动进入下一题。</p>
+        <div class="ext-body" hidden>
+          <div class="row">
+            <div class="field">
+              <label>选正确答案延迟（秒）</label>
+              <input type="number" min="1" max="120" data-ext-field="autoanswer-answer" value="15" />
+            </div>
+          <div class="field">
+            <label>批改后进入下一题延迟（秒）</label>
+            <input type="number" min="1" max="120" data-ext-field="autoanswer-next" value="3" />
+          </div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <!-- ========== 答题区 ========== -->
+    <section id="quiz-section" class="card" hidden>
+      <div class="quiz-top">
+        <h2 id="quiz-title">题库</h2>
+        <div class="quiz-meta">
+          <span id="quiz-progress">第 1 / 1 题</span>
+        </div>
+      </div>
+
+      <div class="nav-dots" id="nav-dots"></div>
+
+      <div id="question-card" class="question-card">
+        <div class="q-head">
+          <span class="q-type" id="q-type">单选</span>
+          <span class="q-index" id="q-index">Q1</span>
+        </div>
+        <p class="q-text" id="q-text"></p>
+        <div class="q-options" id="q-options"></div>
+        <p class="q-explain-hint" id="q-explain-hint" hidden>💡 作答后点「批改」查看解析与对错</p>
+        <p class="q-explain" id="q-explain" hidden></p>
+      </div>
+
+      <div class="quiz-actions">
+        <button class="btn ghost" id="prev-btn">上一题</button>
+        <button class="btn warning" id="grade-btn">✓ 批改</button>
+        <button class="btn primary" id="next-btn">下一题</button>
+        <button class="btn success" id="submit-btn">交卷</button>
+      </div>
+    </section>
+
+    <!-- ========== 结果区 ========== -->
+    <section id="result-section" class="card" hidden>
+      <h2>答题结果</h2>
+      <div class="score-box">
+        <div class="score-num" id="score-num">0 / 0</div>
+        <div class="score-rate" id="score-rate">正确率 0%</div>
+      </div>
+      <div id="review-list" class="review-list"></div>
+      <div class="quiz-actions">
+        <button class="btn primary" id="retry-btn">再来一次</button>
+        <button class="btn ghost" id="change-btn">换题库</button>
+      </div>
+    </section>
+
+    <!-- ========== 格式说明 ========== -->
+    <section class="card collapsible">
+      <details>
+        <summary>📐 题库 JSON 格式说明</summary>
+        <pre class="code"><code>{
+  "title": "示例题库",
+  "questions": [
+    { "type": "single",   "question": "单选题干", "options": ["A","B","C","D"], "answer": 0, "explanation": "可选" },
+    { "type": "multiple", "question": "多选题干", "options": ["A","B","C"],    "answer": [0,2], "explanation": "可选" },
+    { "type": "boolean",  "question": "判断题干", "answer": true, "explanation": "可选" }
+  ]
+}</code></pre>
+        <ul class="fmt-list">
+          <li><b>type</b>：<code>single</code>（单选）/ <code>multiple</code>（多选）/ <code>boolean</code>（判断）</li>
+          <li><b>answer</b>：单选为正确选项下标（从 0）；多选取正确下标数组；判断为 <code>true</code>/<code>false</code></li>
+          <li>容错：<code>answer</code> 也支持 <code>"A"</code>、<code>"对"</code>、<code>"true"</code> 等文本，会自动归一化</li>
+          <li>判断题可省略 <code>options</code>，自动渲染「正确 / 错误」</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+
+  <!-- 扩展运行时容器（独立于答题区，展示模式下也可显示） -->
+  <div id="lcd-panel" class="lcd-panel" hidden>
+    <div class="lcd-screen"><div class="lcd-text" id="lcd-text"></div></div>
+  </div>
+  <div id="music-bar" class="ext-music-bar" hidden>
+    <span class="music-ico">🎵</span>
+    <span class="music-name" id="music-name">背景音乐</span>
+    <button class="btn ghost small" id="music-toggle">暂停</button>
+    <button class="btn ghost small" id="music-stop">停止</button>
+  </div>
+
+  <!-- 自动点名浮层 -->
+  <div id="rollcall-overlay" class="rollcall-overlay" hidden>
+    <div class="rollcall-box">
+      <div class="rc-label" id="rc-label">🎲 点名中…</div>
+      <div class="rc-roll" id="rc-roll"></div>
+      <div class="rc-result" id="rc-result" hidden>
+        <div class="rc-name" id="rc-name">—</div>
+        <div class="rc-sub" id="rc-sub"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GitHub 资源选择器 -->
+  <div id="asset-modal" class="modal" hidden>
+    <div class="modal-mask" data-modal-close></div>
+    <div class="modal-box">
+      <h3 id="asset-title">选择资源</h3>
+      <div class="modal-gh">
+        <input type="password" id="asset-token" placeholder="GitHub 令牌（可选，私有库需要）" autocomplete="off" />
+        <input type="text" id="asset-repo" placeholder="owner/repo，例如 lichenyu27/try" />
+        <button class="btn primary small" id="asset-connect">连接</button>
+      </div>
+      <div id="asset-browse" hidden>
+        <div class="row">
+          <div class="field grow">
+            <label>分支</label>
+            <select id="asset-branch"></select>
+          </div>
+        </div>
+        <div class="breadcrumb" id="asset-path"></div>
+        <div class="file-tree" id="asset-tree"></div>
+        <p class="hint" id="asset-hint">可一层层点文件夹进入，也可点「列出全部文件」一次性列出仓库内所有匹配文件直接选；选当前文件夹请点下方按钮。</p>
+        <div class="pick-actions">
+          <button class="btn ghost" id="asset-list-all">📂 列出全部文件（含子目录）</button>
+          <button class="btn ghost" id="asset-pick-folder">✔ 选择当前文件夹</button>
+        </div>
+      </div>
+      <p class="alert error" id="asset-error" hidden></p>
+      <div class="modal-actions">
+        <button class="btn ghost" data-modal-close>取消</button>
+        <button class="btn primary" id="asset-confirm" disabled>确认选择</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">纯静态答题站 · 可直接双击打开 index.html 或部署到任意静态托管 · 令牌仅存本机浏览器</footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
