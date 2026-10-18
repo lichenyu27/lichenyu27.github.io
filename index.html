@@ -125,6 +125,45 @@
       <div id="import-error" class="alert error" hidden></div>
     </section>
 
+    <!-- ========== AI 生成题库提示 ========== -->
+    <section class="card">
+      <h2>🤖 AI 生成题库提示</h2>
+      <p class="hint">不会写 JSON？把下面这段<b>提示词</b>复制给 DeepSeek / ChatGPT 等 AI，让它按格式生成题库，再把生成的 JSON 用本页「本地文件」或「GitHub」方式导入即可。</p>
+      <div class="ai-prompt-box">
+        <button class="btn ghost small" id="ai-copy-btn">📋 复制提示词</button>
+        <pre id="ai-prompt" class="code">【答题小站 · 题库格式】
+题库是如下结构的 JSON：
+{
+  "title": "题库标题",
+  "questions": [
+    {
+      "type": "single",            // 单选题
+      "question": "题干文字",
+      "options": ["选项A","选项B","选项C","选项D"],
+      "answer": 0,                 // 正确选项下标（从 0 开始）
+      "explanation": "解析（可选）"
+    },
+    {
+      "type": "multiple",          // 多选题
+      "question": "题干文字",
+      "options": ["A","B","C","D"],
+      "answer": [0,2],             // 正确选项下标数组
+      "explanation": "解析（可选）"
+    },
+    {
+      "type": "boolean",           // 判断题
+      "question": "题干文字",
+      "answer": true,              // true=正确, false=错误
+      "explanation": "解析（可选）"
+    }
+  ]
+}
+
+【给 AI 的指令（复制发给 AI）】
+请根据《课程名称》出 N 道练习题，涵盖单选、多选、判断三类，严格按上面的 JSON 格式输出，只输出 JSON，不要任何额外说明。</pre>
+      </div>
+    </section>
+
     <!-- ========== 全局仓库 ========== -->
     <section id="global-repo-section" class="card">
       <h2>🌐 全局仓库（一次设置，全站复用）</h2>
@@ -192,12 +231,12 @@
           </div>
           <div class="ext-block" data-ext-block="bg-website" hidden>
             <div class="field">
-              <label>背景网站网址（全屏嵌入作为背景，纯展示，不挡操作）</label>
+              <label>背景网站网址（仅支持 bilibili，全屏嵌入作为背景，纯展示，不挡操作）</label>
               <div class="row">
-                <input type="url" data-ext-field="bg-website" placeholder="https://example.com" />
+                <input type="url" data-ext-field="bg-website" placeholder="https://www.bilibili.com" />
                 <button class="btn ghost small" data-ext-apply="bg-website">应用</button>
               </div>
-              <p class="hint muted">提示：部分网站禁止被嵌入（X-Frame-Options / CSP），此时背景不会显示，可换用允许嵌入的页面。</p>
+              <p class="hint muted">仅允许 bilibili 域名（如 https://www.bilibili.com、https://player.bilibili.com）。部分页面禁止被嵌入（X-Frame-Options / CSP），此时背景不会显示。</p>
             </div>
             <div class="field">
               <label>或：从仓库 JSON 上传网址</label>
@@ -213,9 +252,9 @@
             <details class="fmt-mini">
               <summary>网址 JSON 格式</summary>
               <pre class="code"><code>{
-  "url": "https://example.com"   // 也可用 website / link 字段
+  "url": "https://www.bilibili.com"   // 也可用 website / link 字段，仅限 bilibili
 }</code></pre>
-              <p class="hint muted">最简写法：文件内容直接是网址字符串 <code>"https://example.com"</code></p>
+              <p class="hint muted">最简写法：文件内容直接是网址字符串 <code>"https://www.bilibili.com"</code>（仅限 bilibili 域名）</p>
             </details>
             <label class="ext-check">
               <input type="checkbox" data-ext-field="bg-interactive" />
