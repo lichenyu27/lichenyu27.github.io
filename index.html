@@ -58,7 +58,7 @@
             <summary>或直接填 owner/repo 快速读取（公开库免令牌 · 支持分享链接）</summary>
             <p class="hint muted">也支持分享链接 <code>?repo=owner/repo</code> 直接打开并加载题库。</p>
             <div class="direct-box">
-              <input type="text" id="gh-direct" placeholder="例如：lichenyu27/try 或 lichenyu27/try/quiz.json" />
+              <input type="text" id="gh-direct" placeholder="例如：owner/repo 或 owner/repo/quiz.json" />
               <button class="btn ghost" id="gh-direct-btn">直接读取</button>
             </div>
           </details>
@@ -132,7 +132,7 @@
       <div class="row">
         <div class="field grow">
           <label>仓库 owner/repo</label>
-          <input type="text" id="gr-repo" placeholder="例如 lichenyu27/try" />
+          <input type="text" id="gr-repo" placeholder="例如 owner/repo" />
         </div>
         <div class="field">
           <label>分支</label>
@@ -442,7 +442,7 @@
       <h3 id="asset-title">选择资源</h3>
       <div class="modal-gh">
         <input type="password" id="asset-token" placeholder="GitHub 令牌（可选，私有库需要）" autocomplete="off" />
-        <input type="text" id="asset-repo" placeholder="owner/repo，例如 lichenyu27/try" />
+        <input type="text" id="asset-repo" placeholder="owner/repo，例如 octocat/Hello-World" />
         <button class="btn primary small" id="asset-connect">连接</button>
       </div>
       <div id="asset-browse" hidden>
