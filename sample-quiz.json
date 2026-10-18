@@ -1,0 +1,37 @@
+{
+  "title": "示例题库 · 三类型演示",
+  "questions": [
+    {
+      "type": "single",
+      "question": "HTTP 状态码 404 表示什么？",
+      "options": ["请求成功", "服务器内部错误", "资源未找到", "需要身份验证"],
+      "answer": 2,
+      "explanation": "404 Not Found 表示服务器找不到请求的资源。"
+    },
+    {
+      "type": "multiple",
+      "question": "以下哪些是 JavaScript 的原始类型（primitive）？",
+      "options": ["string", "number", "object", "boolean", "array"],
+      "answer": [0, 1, 3],
+      "explanation": "原始类型包括 string、number、boolean、null、undefined、symbol、bigint；object 与 array 属于引用类型。"
+    },
+    {
+      "type": "boolean",
+      "question": "JSON 是一种与语言无关的数据交换格式。",
+      "answer": true,
+      "explanation": "JSON（JavaScript Object Notation）虽源自 JS，但是独立于语言的文本格式。"
+    },
+    {
+      "type": "single",
+      "question": "在 CSS 中，哪个属性用于设置元素圆角？",
+      "options": ["border-radius", "corner", "round", "border-style"],
+      "answer": 0
+    },
+    {
+      "type": "boolean",
+      "question": "Git 是一个集中式版本控制系统。",
+      "answer": false,
+      "explanation": "Git 是分布式版本控制系统，每个仓库都包含完整历史。"
+    }
+  ]
+}
