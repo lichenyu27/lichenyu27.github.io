@@ -872,12 +872,27 @@ function websiteUrlFromJson(txt) {
   }
   return null;
 }
-/* 从仓库 JSON 读取网址并设为背景网站（与「应用」按钮效果一致） */
+/* 背景网站仅允许 bilibili 域名（含子域如 www / player / search）。返回 true / false */
+function isAllowedWebsiteUrl(url) {
+  if (!url || !/^https?:\/\//i.test(url)) return false;
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return host === 'bilibili.com' || host.endsWith('.bilibili.com');
+  } catch (_) { return false; }
+}
+/* 背景网站只允许 bilibili：校验并给出统一报错，合法返回 true */
+function validateWebsiteUrl(url) {
+  if (!url) return false;
+  if (!/^https?:\/\//i.test(url)) { showError('请输入合法的 http(s) 网址'); return false; }
+  if (!isAllowedWebsiteUrl(url)) { showError('背景网站仅支持 bilibili 网址（如 https://www.bilibili.com）'); return false; }
+  return true;
+}
 async function applyWebsiteFromJson(repo, branch, path, name) {
   try {
     const txt = await fetchJsonText(repo, branch, path);
     const url = websiteUrlFromJson(txt);
     if (!url) { showError('该 JSON 未包含网址（需要 url / website / link 字段，或纯字符串网址）'); return; }
+    if (!isAllowedWebsiteUrl(url)) { showError('背景网站仅支持 bilibili 网址（如 https://www.bilibili.com）'); return; }
     ext.bg.website = url;
     setExtField('bg-website', url);
     const src = $('[data-ext-src="bg-website"]'); if (src) src.textContent = name || '已选择';
@@ -954,6 +969,7 @@ function applyWebsiteBg(url) {
   removeWebsiteBg();
   bgApplied = { ...sig };
   if (!url) { showError('网站背景已开启，但未填写网址'); return; }
+  if (!isAllowedWebsiteUrl(url)) { showError('背景网站仅支持 bilibili 网址（如 https://www.bilibili.com）'); return; }
   bgIframe = document.createElement('iframe');
   bgIframe.src = url;
   bgIframe.className = 'bg-website-frame' + (interactive ? ' interactive' : '');
@@ -1467,6 +1483,23 @@ function bindUI() {
   $('#gh-sample').addEventListener('click', loadSample);
   $('#file-sample').addEventListener('click', loadSample);
 
+  // AI 生成题库提示：复制提示词
+  $('#ai-copy-btn').addEventListener('click', async () => {
+    const txt = $('#ai-prompt').textContent;
+    const btn = $('#ai-copy-btn');
+    try {
+      await navigator.clipboard.writeText(txt);
+      btn.textContent = '✅ 已复制';
+    } catch (_) {
+      // 退化方案：选中文本让用户手动复制
+      const el = $('#ai-prompt');
+      const range = document.createRange(); range.selectNodeContents(el);
+      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      btn.textContent = '⚠️ 请手动复制（已选中）';
+    }
+    setTimeout(() => { btn.textContent = '📋 复制提示词'; }, 2000);
+  });
+
   // 答题导航
   $('#prev-btn').addEventListener('click', () => { if (current > 0) { current--; renderQuestion(); scheduleAuto(); } });
   $('#grade-btn').addEventListener('click', gradeCurrent);
@@ -1538,7 +1571,9 @@ function bindUI() {
   $('#display-btn').addEventListener('click', toggleDisplayMode);
   $('#rc-draw-btn').addEventListener('click', () => doRollCall(null));
   $('[data-ext-apply="bg-website"]').addEventListener('click', () => {
-    ext.bg.website = $('[data-ext-field="bg-website"]').value.trim();
+    const url = $('[data-ext-field="bg-website"]').value.trim();
+    if (url && !validateWebsiteUrl(url)) return;
+    ext.bg.website = url;
     saveExtState();
     if (ext.bg.enabled) applyBgExt();
   });
@@ -1548,6 +1583,7 @@ function bindUI() {
     try {
       const url = websiteUrlFromJson(await file.text());
       if (!url) { showError('该 JSON 未包含网址（需要 url / website / link 字段，或纯字符串网址）'); e.target.value = ''; return; }
+      if (!isAllowedWebsiteUrl(url)) { showError('背景网站仅支持 bilibili 网址（如 https://www.bilibili.com）'); e.target.value = ''; return; }
       ext.bg.website = url;
       setExtField('bg-website', url);
       const src = $('[data-ext-src="bg-website"]'); if (src) src.textContent = file.name;
