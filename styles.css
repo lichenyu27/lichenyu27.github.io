@@ -126,6 +126,11 @@ textarea { resize: vertical; }
 /* alert */
 .alert { margin-top: 14px; padding: 12px 14px; border-radius: 10px; font-size: 14px; }
 .alert.error { background: #fdecec; color: var(--danger); border: 1px solid #f6c9ca; }
+/* 报错浮到最上层（含扩展商店浮层内的背景网址校验），确保用户一定看得到 */
+.alert.error:not([hidden]) {
+  position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+  z-index: 999; max-width: 90vw; box-shadow: 0 6px 20px rgba(0, 0, 0, .18);
+}
 
 /* GitHub 浏览 */
 .connected-bar {
