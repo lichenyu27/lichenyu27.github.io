@@ -510,13 +510,9 @@ body.bg-website .site-header .btn.ghost { box-shadow: 0 2px 8px rgba(0,0,0,.25);
   background: #efe6cf; color: #6b541d; font-size: 12px; border: 1px solid #e0d2ab;
 }
 
-/* 展示模式：隐藏所有答题相关内容，只留顶部按钮与扩展浮层 */
+/* 展示模式：隐藏除扩展浮层外的一切内容（含 AI 提示卡），只留顶部按钮与扩展浮层 */
 body.display-mode .subtitle { display: none; }
-body.display-mode #import-section,
-body.display-mode #quiz-section,
-body.display-mode #result-section,
-body.display-mode #global-repo-section,
-body.display-mode .collapsible,
+body.display-mode .container > *:not(#ext-overlay) { display: none !important; }
 body.display-mode .site-footer { display: none !important; }
 
 @media (max-width: 520px) {
