@@ -494,7 +494,12 @@ function startQuiz(parsed) {
 
   renderNavDots();
   renderQuestion();
-  applyExtensionsOnStart();
+  applyExtensionsOnStart().then(() => {
+    // 开始答题时也点一次名（前提：已开启点名扩展并选好学号 JSON）
+    if (ext.rollcall.enabled && studentIds.length && current === 0 && !submitted) {
+      doRollCall(() => {});
+    }
+  });
   scheduleAuto();
   $('#quiz-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -1143,14 +1148,16 @@ function loadStudentIds() {
   studentIds = []; drawnIds = new Set();
   const c = ext.rollcall;
   renderDrawnList();
-  if (!c.enabled || !c.source) return;
-  (async () => {
+  if (!c.enabled || !c.source) return Promise.resolve();
+  return (async () => {
     try {
       const txt = await fetchJsonText(c.source.repo, c.source.branch, c.source.files[0].path);
       const data = JSON.parse(txt);
       let list = [];
       if (Array.isArray(data)) list = data;
       else if (Array.isArray(data.ids)) list = data.ids;
+      else if (Array.isArray(data.numbers)) list = data.numbers;   // 选人名单：numbers:[1..44]
+      else if (Array.isArray(data.students)) list = data.students;
       else if (Array.isArray(data.names)) list = data.names;
       else if (Array.isArray(data.rows)) {
         const names = Array.isArray(data.names) ? data.names : [];
