@@ -595,6 +595,7 @@ class Esp32Web(object):
         head += "Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS, HEAD\r\n"
         head += "Access-Control-Allow-Headers: *\r\n"
         head += "Access-Control-Max-Age: 86400\r\n"
+        head += "Access-Control-Allow-Private-Network: true\r\n"
         head += "Cache-Control: no-store\r\n"
         head += "Connection: close\r\n"
         if extra:
@@ -676,6 +677,8 @@ def _cli_ui(root, port, proxy_default):
             self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
             self.send_header("Access-Control-Allow-Headers", "*")
             self.send_header("Access-Control-Max-Age", "86400")
+            # 允许从公网 https 页面（如 GitHub Pages）访问本地代理
+            self.send_header("Access-Control-Allow-Private-Network", "true")
 
         def end_headers(self):
             self._cors()

@@ -316,6 +316,14 @@ https 页面请求 http 设备会被浏览器判为混合内容，直接拦截�
 </details>
 
 <details>
+<summary><b>Chrome 提示「本地网络访问」/ 代理明明开着却说连不上</b></summary>
+
+Chrome 142 之后，公网 https 页面访问 `127.0.0.1` 需要用户授权。
+地址栏左侧会出现一个「允许访问本地设备」的图标，点允许即可；不想折腾就直接从 `http://127.0.0.1:8765` 打开页面，那是同源，不需要授权。
+（代理服务端已经带上 `Access-Control-Allow-Private-Network: true`，只是浏览器的权限确认绕不过去。）
+</details>
+
+<details>
 <summary><b>端口被占用 / 想换端口</b></summary>
 
 ```bash

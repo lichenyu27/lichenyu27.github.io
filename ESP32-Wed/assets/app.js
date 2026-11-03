@@ -352,17 +352,25 @@
   }
 
   async function sendProxy(req, ms) {
-    const res = await fetchWithTimeout(proxyUrlFor(req.url), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        url: req.url,
-        method: req.method,
-        headers: req.headers,
-        body: req.body,
-        timeout: Math.max(1, ms / 1000),
-      }),
-    }, ms + 2500);
+    let res;
+    try {
+      res = await fetchWithTimeout(proxyUrlFor(req.url), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: req.url,
+          method: req.method,
+          headers: req.headers,
+          body: req.body,
+          timeout: Math.max(1, ms / 1000),
+        }),
+      }, ms + 2500);
+    } catch (e) {
+      throw new Error(
+        "连不上本地代理（可能是没启动，或被浏览器「本地网络访问」权限拦了）。" +
+        "请确认已运行 python esp32web.py ui；仍不行就直接用 http://127.0.0.1:8765 打开页面。"
+      );
+    }
     const data = await res.json().catch(() => ({}));
     if (data.error) throw new Error(data.error);
     return {
@@ -411,6 +419,7 @@
   }
 
   let proxyOK = null;
+  let proxyBlocked = false;
   function isProxyReachable() {
     return proxyOK !== false;
   }
@@ -418,10 +427,13 @@
     const base = (S.settings.proxyBase || "").trim().replace(/\/$/, "");
     if (!base && location.protocol === "file:") { proxyOK = false; return; }
     try {
-      const r = await fetchWithTimeout(`${base}/proxy?ping=1`, { method: "GET" }, 1500);
+      const r = await fetchWithTimeout(`${base}/proxy?ping=1`, { method: "GET" }, 1800);
       proxyOK = r.ok;
+      proxyBlocked = false;
     } catch {
       proxyOK = false;
+      // https 页面 + 打不开本地端口：大概率是 Chrome 的「本地网络访问」拦截
+      proxyBlocked = location.protocol === "https:";
     }
     updateProxyChip();
   }
@@ -430,10 +442,12 @@
     if (!el) return;
     if (location.protocol === "https:" && proxyOK === false) {
       el.className = "hint warn";
-      el.innerHTML = "检测不到本地代理。HTTPS 页面请求 <code>http://</code> 设备会被浏览器拦截，建议本地运行 <code>python esp32web.py ui</code> 后从 http://127.0.0.1:8765 打开页面。";
+      el.innerHTML = proxyBlocked
+        ? "没连上本地代理。先运行 <code>python esp32web.py ui</code>；若已运行仍失败，点浏览器地址栏的「本地网络访问 / 允许访问设备」授权，或直接用 http://127.0.0.1:8765 打开。"
+        : "检测不到本地代理。HTTPS 页面请求 <code>http://</code> 设备会被浏览器拦截，建议本地运行 <code>python esp32web.py ui</code> 后从 http://127.0.0.1:8765 打开页面。";
     } else if (location.protocol === "https:") {
       el.className = "hint";
-      el.innerHTML = "已检测到本地代理，HTTPS 页面会自动走代理转发。";
+      el.innerHTML = "已检测到本地代理，从当前页面发的请求会自动走代理转发。";
     } else {
       el.className = "hint";
       el.innerHTML = "当前页面可直接请求局域网地址；若设备未开 CORS，会自动降级为盲发。";
