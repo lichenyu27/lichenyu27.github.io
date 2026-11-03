@@ -42,6 +42,7 @@ ESP32-Wed/
 │   ├── micropython_main.py     ESP32 端完整示例（WiFi + LED + 蜂鸣器 + 触摸）
 │   ├── micropython_minimal.py  只收不回的最小示例（裸 socket，回 204）
 │   └── pc_demo.py              电脑端示例（没有板子也能先把网页调通）
+├── .vscode/launch.json         VS Code 按 F5 直接跑（自动开浏览器）
 ├── .nojekyll                   GitHub Pages 用，别删
 └── README.md
 ```
@@ -92,6 +93,25 @@ GET  /proxy?url=http://192.168.4.1:8080/status   # 原样转发，返回 {status
 GET  /send?msg=on                                # 直接打到 --target 的 /cmd
 GET  /proxy?ping=1                               # 探测转发器是否在线
 ```
+
+#### 在编辑器里直接运行
+
+可以，不用装插件、不用建虚拟环境、不用 `pip install`。`forward.py` 只用标准库，任何 Python 3.7+ 都能跑。
+
+| 编辑器 | 操作 |
+| --- | --- |
+| **VS Code** | 打开 `forward.py` → 右上角 ▷ **Run Python File**；或按 `F5` 用仓库自带的 `.vscode/launch.json`（有两个配置：自动开浏览器 / 启动时输入板子地址） |
+| **PyCharm** | 右键 `forward.py` → **Run 'forward'** |
+| **IDLE** | `File → Open` 选中 `forward.py` → `F5` |
+| **Thonny** | 打开文件 → 绿色 ▶（注意：Thonny 默认解释器是 MicroPython 时要切成电脑端 Python） |
+
+三点须知：
+
+1. **服务跑在编辑器下方那个终端里**，终端一关服务就停；要停就点终端里的 ⏹ 或按 `Ctrl+C`。
+2. **不一定自动开浏览器**，手动访问 `http://127.0.0.1:8765/` 即可；想要自动开，命令行加 `--open`（VS Code 的 F5 配置里已带）。
+3. **和当前目录无关**：脚本用 `__file__` 定位 `index.html`，所以从任何目录运行都能找到页面。实测从 `/tmp` 直接运行，首页与静态资源都是 200。
+
+> 断点调试也能用：在 `do_GET` / `do_POST` 里下断点，点一次按钮就会停在断点上，能看到设备地址、方法、请求体。
 
 ### 3.1 打开
 

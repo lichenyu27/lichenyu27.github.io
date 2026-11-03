@@ -52,21 +52,36 @@ if hasattr(sys.stdout, "reconfigure"):
 
 
 def local_ip():
-    """局域网 IP，拿不到就 127.0.0.1。"""
-    s = None
+    """局域网 IP，拿不到就 127.0.0.1。
+
+    用 UDP connect 只查路由表、不发包，比 TCP connect 更稳
+    （没外网、只连了 ESP32 的 WiFi 也能拿到地址）。
+    """
+    for probe in ("8.8.8.8", "114.114.114.114", "10.255.255.255"):
+        s = None
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect((probe, 80))
+            ip = s.getsockname()[0]
+            if ip and not ip.startswith("127."):
+                return ip
+        except Exception:
+            pass
+        finally:
+            if s is not None:
+                try:
+                    s.close()
+                except Exception:
+                    pass
+
+    # 退回主机名解析
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(0.4)
-        s.connect(("8.8.8.8", 80))
-        return s.getsockname()[0]
+        ip = socket.gethostbyname(socket.gethostname())
+        if ip and not ip.startswith("127."):
+            return ip
     except Exception:
-        return "127.0.0.1"
-    finally:
-        if s is not None:
-            try:
-                s.close()
-            except Exception:
-                pass
+        pass
+    return "127.0.0.1"
 
 
 def normalize_target(t):
@@ -278,7 +293,10 @@ def main():
     print("  │  ESP32 转发器已启动                          │")
     print("  ╰──────────────────────────────────────────────╯")
     print("    本机打开：http://127.0.0.1:%d/" % args.port)
-    print("    手机/平板：http://%s:%d/" % (ip, args.port))
+    if ip.startswith("127."):
+        print("    手机/平板：未检测到局域网地址（本机没连 WiFi / 网线？）")
+    else:
+        print("    手机/平板：http://%s:%d/" % (ip, args.port))
     if DEFAULT_TARGET:
         print("    默认设备：%s" % DEFAULT_TARGET)
         print("    快捷测试：http://127.0.0.1:%d/send?msg=on" % args.port)

@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "启动转发器（自动开浏览器）",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/forward.py",
+      "args": ["--open"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true
+    },
+    {
+      "name": "启动转发器（指定 ESP32 地址）",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/forward.py",
+      "args": ["--open", "--target", "${input:deviceAddr}"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true
+    }
+  ],
+  "inputs": [
+    {
+      "id": "deviceAddr",
+      "type": "promptString",
+      "description": "ESP32 地址（IP:端口，可省略 http://）",
+      "default": "192.168.4.1:8080"
+    }
+  ]
+}
