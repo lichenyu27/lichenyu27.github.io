@@ -748,7 +748,15 @@ def _cli_ui(root, port, proxy_default):
                 raw = e.read(65536) if hasattr(e, "read") else b""
                 status = e.code
             except Exception as e:
-                return self._json({"error": "%s: %s" % (type(e).__name__, e)}, 502)
+                msg = "%s: %s" % (type(e).__name__, e)
+                low = str(e).lower()
+                if "refused" in low:
+                    msg = "连不上设备（Connection refused），检查 IP / 端口 / 是否同一网络"
+                elif "timed out" in low or "timeout" in low:
+                    msg = "连接超时，设备没有响应"
+                elif "name or service not known" in low or "getaddrinfo" in low:
+                    msg = "地址解析失败，检查 IP 是否写错"
+                return self._json({"error": msg}, 502)
 
             ms = int((_time.time() - t0) * 1000)
             text = raw.decode("utf-8", "replace")

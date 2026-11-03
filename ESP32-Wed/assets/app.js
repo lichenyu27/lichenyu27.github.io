@@ -119,6 +119,9 @@
       el.addEventListener("pointerdown", (ev) => onFabPointerDown(ev, b, el));
       el.addEventListener("dblclick", (ev) => { ev.preventDefault(); openEditor(b.id); });
       el.addEventListener("contextmenu", (ev) => { ev.preventDefault(); openEditor(b.id); });
+      el.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); fire(b.id); }
+      });
       stage.appendChild(el);
     });
 
@@ -380,8 +383,12 @@
     // auto
     const mixed = location.protocol === "https:" && req.url.startsWith("http://");
     const isLocalHostTarget = /^http:\/\/(127\.0\.0\.1|localhost)/i.test(req.url);
-    if (mixed && !isLocalHostTarget && isProxyReachable()) {
-      try { return await sendProxy(req, ms); } catch (e) { /* 落到直连 */ }
+    if (mixed && !isLocalHostTarget) {
+      if (isProxyReachable()) {
+        try { return await sendProxy(req, ms); } catch (e) { /* 代理失败再试直连 */ }
+      } else {
+        throw new Error("HTTPS 页面无法直接请求 http:// 设备（混合内容被拦截）。请运行 python esp32web.py ui 托管页面，或在设置里填代理地址。");
+      }
     }
     try {
       return await sendCors(req, ms);
@@ -562,11 +569,11 @@
     const b = S.buttons.find((x) => x.id === editingId);
     if (!b) return closeEditor();
     const label = $("fLabel").value.trim() || "未命名";
-    const target = $("fTarget").value.trim();
+    let target = $("fTarget").value.trim();
     if (target && !/^[a-zA-Z]+:\/\//.test(target)) {
-      toast("目标地址需要带 http:// 前缀", true);
-      return;
+      target = "http://" + target;   // 少写协议时自动补全
     }
+    $("fTarget").value = target;
     Object.assign(b, {
       label,
       color: $("fColor").value,

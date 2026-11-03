@@ -3,9 +3,13 @@
 > 一个可以随便加按钮的网页面板：按下按钮，就往指定的 IP / 端口发一条消息（主要给 ESP32）。
 > 按钮能拖、能改色、能分组；配套一个单文件 Python 库，三行代码让 ESP32 开服务、被查询、收指令。
 
-- 🌐 在线版：<https://lichenyu27.github.io/ESP32-Wed/>
+- 🌐 在线版：<https://lichenyu27.github.io/ESP32-Wed/>（已在 `lichenyu27.github.io` 站点下托管）
 - 🐍 Python 库：`python/esp32web.py`（CPython 与 MicroPython 通用，零依赖）
 - 📦 仓库：<https://github.com/lichenyu27/ESP32-Wed>
+
+> **关于托管**：在线地址当前由 `lichenyu27.github.io` 站点下的 `/ESP32-Wed/` 目录提供，打开即用。
+> 如果希望改由 `ESP32-Wed` 仓库自身发布（URL 不变），去仓库 **Settings → Pages → Deploy from a branch → main / (root) → Save** 点一下即可；
+> 创建仓库用的令牌没有 `pages` 权限，所以这一步只能手动完成。
 
 ---
 
