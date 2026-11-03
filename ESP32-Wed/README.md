@@ -38,6 +38,7 @@ ESP32-Wed/
 │   └── esp32web.py             Python 库 + 命令行工具（单文件）
 ├── examples/
 │   ├── micropython_main.py     ESP32 端完整示例（WiFi + LED + 蜂鸣器 + 触摸）
+│   ├── micropython_minimal.py  只收不回的最小示例（裸 socket，回 204）
 │   └── pc_demo.py              电脑端示例（没有板子也能先把网页调通）
 ├── .nojekyll                   GitHub Pages 用，别删
 └── README.md
@@ -99,7 +100,8 @@ ESP32-Wed/
 
 ## 4. Python 库 `esp32web`
 
-单文件、零依赖，**同一份代码 CPython 和 MicroPython 都能跑**（ESP32 上直接当 `main.py` 用）。
+就是本仓库里的 [`python/esp32web.py`](./python/esp32web.py) 这一个文件，不是什么第三方包，也没有依赖：拷过去就能 `import esp32web`。
+单文件、零依赖，**同一份代码 CPython 和 MicroPython 都能跑**（ESP32 上直接当库用，也可以当 `main.py` 的一部分）。
 
 ### 4.1 拿过来
 
@@ -223,6 +225,66 @@ python python/esp32web.py ui     --port 8765 --open   # 托管网页面板 + 代
   代理接口：http://127.0.0.1:8765/proxy?url=http://192.168.4.1:8080/status
 ```
 
+### 4.5 只收不回：不返回内容怎么写
+
+ESP32 只管动作、不给网页任何数据时，**不能一个字节都不发就 `close()`**，否则客户端会一直等到超时；正确做法是回一个空的 `204 No Content`（body 长度 0）。
+
+**用库：把 `/cmd` 路由改成返回空**
+
+```python
+import esp32web
+from machine import Pin
+
+led = Pin(4, Pin.OUT)
+srv = esp32web.start(port=8080, name="esp32")
+
+def on_cmd(req):                 # req["msg"] 就是按钮发来的内容
+    if req["msg"] == "on":
+        led.value(1)
+    elif req["msg"] == "off":
+        led.value(0)
+    return (204, "")             # ← 不返回内容
+
+srv.on("/cmd", on_cmd)           # 覆盖默认 /cmd（默认会回 JSON）
+srv.listen()                     # 内部就是 while True: srv.poll()
+```
+
+想连 `/status` 也不回内容，就 `srv.on("/status", lambda r: (204, ""))`。
+返回 `(200, "ok")` 就是带内容，返回 `(204, "")` 就是不带，写法一样。
+
+**不用库：裸 socket 版**
+
+完整可运行文件见 [`examples/micropython_minimal.py`](./examples/micropython_minimal.py)，核心就这几行：
+
+```python
+path, body = read_request(conn)      # GET 参数在 path 里，POST 在 body 里
+handle(path, body)                   # 解析 msg 并执行动作
+
+conn.send(b"HTTP/1.1 204 No Content\r\n"
+          b"Access-Control-Allow-Origin: *\r\n"
+          b"Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n"
+          b"Access-Control-Allow-Headers: *\r\n"
+          b"Content-Length: 0\r\n"
+          b"Connection: close\r\n\r\n")
+```
+
+**网页端对应配置**
+
+| 按钮设置 | 建议值 |
+| --- | --- |
+| 数据格式 | 「URL 查询参数 `?msg=`」（裸 socket 最好处理）或「纯文本 body」 |
+| 方法 | GET / POST 都行，与数据格式匹配即可 |
+| 发送模式 | 自动 / 直连盲发 / 图片信标都可以 |
+
+日志显示「已发出，无法读取响应」是正常的——no-cors 和图片信标本来就不给响应体。
+
+**四个坑**
+
+1. 一个字节都不发直接 `close()` → 客户端报空响应或超时，所以至少回 `204`。
+2. no-cors 的 POST 只能是 `text/plain`，选「JSON body」会触发预检，设备不处理 `OPTIONS` 就失败。
+3. 每次 `accept` 后都要 `close()`，否则点几十次后端口占满、板子假死。
+4. 图片信标模式下 `204` 会让 `<img>` 触发 `onerror`，但这只影响回调，指令已经送达。
+
 ---
 
 ## 5. 在 ESP32 上跑起来（MicroPython）
@@ -243,6 +305,7 @@ python python/esp32web.py ui     --port 8765 --open   # 托管网页面板 + 代
 
 1. 把 `python/esp32web.py` 拷到板子根目录
 2. 把 `examples/micropython_main.py` 改名成 `main.py` 拷进去
+   （想「只收不回」就用 `examples/micropython_minimal.py`，那个连 `esp32web.py` 都不需要）
 3. 改里面的 `WIFI_SSID` / `WIFI_PASSWORD`
 4. 复位，串口会打印：
 
@@ -278,6 +341,8 @@ while True:
 ```
 
 关键是那行 `Access-Control-Allow-Origin`，少了它网页就报 CORS。
+
+只想收指令、不返回内容的话，把响应换成 `HTTP/1.1 204 No Content` + `Content-Length: 0`，完整代码见 [`examples/micropython_minimal.py`](./examples/micropython_minimal.py)，说明见本文 §4.5。
 
 ---
 
