@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>ESP32 按钮控制台</title>
+<meta name="description" content="可视化按钮面板：一键向 ESP32 / 任意 HTTP 地址发送指令，支持拖动布局、自定义颜色、CORS 多模式发送。" />
+<link rel="stylesheet" href="./assets/style.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>" />
+</head>
+<body>
+<div id="mixedBanner" class="banner hidden">
+  <span>⚠️ 当前页面是 HTTPS，向 <code>http://</code> 局域网地址发请求会被浏览器拦截（混合内容）。</span>
+  <button id="bannerProxy" class="btn tiny">改用本地代理</button>
+  <button id="bannerClose" class="btn tiny ghost">知道了</button>
+</div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">◉</span>
+    <div>
+      <h1>ESP32 按钮控制台</h1>
+      <p class="sub">点按钮 → 发请求 → 板子动起来</p>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <label class="switch" title="布局模式：拖动按钮位置 / 点击编辑属性">
+      <input type="checkbox" id="layoutMode" />
+      <span class="track"><span class="knob"></span></span>
+      <span class="switch-label">布局模式</span>
+    </label>
+    <button class="btn" id="addBtn">＋ 新建按钮</button>
+    <button class="btn ghost" id="exportBtn">导出</button>
+    <button class="btn ghost" id="importBtn">导入</button>
+    <input type="file" id="importFile" accept="application/json" hidden />
+    <button class="btn ghost" id="settingsBtn">⚙ 设置</button>
+    <button class="btn ghost" id="logBtn">日志 <span id="logCount" class="pill">0</span></button>
+  </div>
+</header>
+
+<main class="layout">
+  <aside class="sidebar" id="sidebar">
+    <section class="card">
+      <h2>发送方式</h2>
+      <div class="field">
+        <label>模式</label>
+        <select id="modeSelect">
+          <option value="auto">自动（推荐）</option>
+          <option value="cors">直连 CORS（可读响应）</option>
+          <option value="text">直连盲发（no-cors）</option>
+          <option value="beacon">图片信标（GET）</option>
+          <option value="proxy">本地代理（最稳）</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>默认目标地址</label>
+        <input id="defaultTarget" type="text" placeholder="http://192.168.4.1:8080/cmd" spellcheck="false" />
+      </div>
+      <div class="field">
+        <label>代理地址</label>
+        <input id="proxyBase" type="text" placeholder="留空 = 同源 /proxy" spellcheck="false" />
+      </div>
+      <div class="hint" id="modeHint"></div>
+    </section>
+
+    <section class="card">
+      <h2>按钮清单 <span class="muted" id="btnStat">0</span></h2>
+      <ul class="btnlist" id="btnList"></ul>
+      <div class="empty-small" id="btnListEmpty">还没有按钮，点右上角「＋ 新建按钮」</div>
+    </section>
+
+    <section class="card tips">
+      <h2>小贴士</h2>
+      <ul>
+        <li>布局模式下拖动按钮即可改位置，松手自动保存。</li>
+        <li>运行模式下<b>长按 0.4 秒</b>也能拖动。</li>
+        <li>双击按钮可打开属性面板改名字 / 颜色 / 地址。</li>
+        <li>所有配置存在浏览器本地（localStorage），换设备请用「导出 / 导入」。</li>
+      </ul>
+    </section>
+  </aside>
+
+  <section class="stage-wrap">
+    <div class="stage-head">
+      <div class="chips">
+        <span class="chip" id="chipMode">模式：自动</span>
+        <span class="chip" id="chipCount">0 个按钮</span>
+        <span class="chip" id="chipProto">页面：http</span>
+      </div>
+      <div class="stage-actions">
+        <button class="btn ghost tiny" id="testBtn">测试连通</button>
+        <button class="btn ghost tiny" id="clearBtn">清空全部</button>
+      </div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="stage-grid"></div>
+      <div class="stage-empty" id="stageEmpty">
+        <div class="big">🎛️</div>
+        <h3>画布空空如也</h3>
+        <p>新建一个按钮，填上 ESP32 的地址，比如 <code>http://192.168.4.1:8080/cmd</code></p>
+        <button class="btn" id="emptyAdd">＋ 创建第一个按钮</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<aside class="console" id="console">
+  <div class="console-head">
+    <strong>请求日志</strong>
+    <div>
+      <button class="btn ghost tiny" id="clearLog">清空</button>
+      <button class="btn ghost tiny" id="closeLog">收起</button>
+    </div>
+  </div>
+  <div class="console-body" id="consoleBody">
+    <div class="log-empty">暂无日志</div>
+  </div>
+</aside>
+
+<!-- 属性面板 -->
+<div class="modal hidden" id="modal">
+  <div class="modal-card">
+    <header>
+      <h2 id="modalTitle">按钮属性</h2>
+      <button class="icon-btn" id="modalClose">✕</button>
+    </header>
+    <div class="modal-body">
+      <div class="grid2">
+        <div class="field">
+          <label>名称</label>
+          <input id="fLabel" type="text" maxlength="24" placeholder="开灯" />
+        </div>
+        <div class="field">
+          <label>颜色</label>
+          <div class="color-row">
+            <input id="fColor" type="color" value="#22d3ee" />
+            <div class="swatches" id="swatches"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>目标地址（含端口和路径）</label>
+        <input id="fTarget" type="text" placeholder="http://192.168.4.1:8080/cmd" spellcheck="false" />
+        <div class="hint">留空则使用左侧「默认目标地址」</div>
+      </div>
+
+      <div class="grid3">
+        <div class="field">
+          <label>方法</label>
+          <select id="fMethod">
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+            <option value="PUT">PUT</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>数据格式</label>
+          <select id="fFormat">
+            <option value="query">URL 查询参数 ?msg=</option>
+            <option value="text">纯文本 body</option>
+            <option value="json">JSON body</option>
+            <option value="form">表单 body</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>超时（毫秒）</label>
+          <input id="fTimeout" type="number" min="200" max="20000" step="100" value="4000" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>发送内容</label>
+        <textarea id="fMsg" rows="2" placeholder="on"></textarea>
+        <div class="hint">JSON / 表单格式会用 <code>msg</code> 作为字段名。</div>
+      </div>
+
+      <div class="grid3">
+        <div class="field">
+          <label>宽度（px）</label>
+          <input id="fW" type="number" min="90" max="420" step="2" value="150" />
+        </div>
+        <div class="field">
+          <label>高度（px）</label>
+          <input id="fH" type="number" min="56" max="280" step="2" value="76" />
+        </div>
+        <div class="field">
+          <label>位置 X / Y</label>
+          <div class="pos-row">
+            <input id="fX" type="number" step="1" value="0" />
+            <input id="fY" type="number" step="1" value="0" />
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer>
+      <button class="btn danger ghost" id="fDelete">删除</button>
+      <div class="spacer"></div>
+      <button class="btn ghost" id="fCancel">取消</button>
+      <button class="btn" id="fSave">保存</button>
+    </footer>
+  </div>
+</div>
+
+<!-- 设置面板 -->
+<div class="modal hidden" id="settingsModal">
+  <div class="modal-card small">
+    <header>
+      <h2>全局设置</h2>
+      <button class="icon-btn" id="settingsClose">✕</button>
+    </header>
+    <div class="modal-body">
+      <div class="field">
+        <label>默认目标地址</label>
+        <input id="sTarget" type="text" placeholder="http://192.168.4.1:8080/cmd" spellcheck="false" />
+      </div>
+      <div class="field">
+        <label>发送模式</label>
+        <select id="sMode">
+          <option value="auto">自动（推荐）</option>
+          <option value="cors">直连 CORS</option>
+          <option value="text">直连盲发（no-cors）</option>
+          <option value="beacon">图片信标（GET）</option>
+          <option value="proxy">本地代理</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>代理地址</label>
+        <input id="sProxy" type="text" placeholder="http://127.0.0.1:8765" spellcheck="false" />
+      </div>
+      <div class="field">
+        <label>请求附带字段</label>
+        <input id="sFrom" type="text" placeholder="web" spellcheck="false" />
+      </div>
+      <div class="hint">发送 JSON / 表单时，会额外带上 <code>from</code> 字段，方便 ESP32 识别来源。</div>
+    </div>
+    <footer>
+      <div class="spacer"></div>
+      <button class="btn" id="settingsSave">保存</button>
+    </footer>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="./assets/app.js"></script>
+</body>
+</html>
