@@ -440,6 +440,10 @@
   function updateProxyChip() {
     const el = $("modeHint");
     if (!el) return;
+    if (proxyOK === true) {
+      const banner = $("mixedBanner");
+      if (banner && location.protocol === "https:") banner.classList.add("hidden");
+    }
     if (location.protocol === "https:" && proxyOK === false) {
       el.className = "hint warn";
       el.innerHTML = proxyBlocked
