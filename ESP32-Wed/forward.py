@@ -190,6 +190,12 @@ class Handler(SimpleHTTPRequestHandler):
 
         url = self._resolve(url)
         if not url:
+            raw = (qs.get("url", [""])[0] if not body else "").strip()
+            if raw.startswith("/"):
+                return self._json({
+                    "error": "url 是相对路径（%s），但启动时没带 --target，不知道转发到哪台设备" % raw,
+                    "hint": "改成完整地址 /proxy?url=http://192.168.4.1:8080%s，或启动加 --target 192.168.4.1:8080" % raw,
+                }, 400)
             return self._json({"error": "缺少 url 参数，例如 /proxy?url=http://192.168.4.1:8080/status"}, 400)
 
         payload = None
